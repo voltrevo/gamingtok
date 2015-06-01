@@ -3,9 +3,10 @@
 var io = require('socket.io-client');
 
 window.addEventListener('load', function() {
-  document.body.appendChild(document.createTextNode('Hello world!'));
-
   var sock = io(window.location.origin);
 
-  sock.emit('msg', 'foobar');
+  sock.on('sessionId', function(data) {
+    var sessionId = JSON.parse(data);
+    document.body.appendChild(document.createTextNode('Got sessionId: ' + sessionId));
+  });
 });

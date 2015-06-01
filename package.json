@@ -8,7 +8,7 @@
     "start": "node src/server.js"
   },
   "author": "Andrew Morris",
-  "license": "None",
+  "license": "MIT",
   "dependencies": {
     "browserify-middleware": "^5.0.2",
     "configure": "git://github.com/voltrevo/node-configure",
@@ -16,6 +16,5 @@
     "opentok": "^2.2.5",
     "socket.io": "^1.3.5",
     "socket.io-client": "^1.3.5"
-  },
-  "private": true
+  }
 }
