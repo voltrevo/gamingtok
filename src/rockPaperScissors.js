@@ -1,8 +1,6 @@
 'use strict';
 
-console.log('before opentok:', Date.now());
 var opentok = require('opentok');
-console.log('after  opentok:', Date.now());
 
 module.exports = function(config) {
   var self = (new (function rockPaperScissors(){}));

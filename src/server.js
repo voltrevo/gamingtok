@@ -1,11 +1,7 @@
 'use strict';
 
-var config = require('configure');
-
-console.log('before express:', Date.now());
+var config = require('./configure');
 var express = require('express');
-console.log('after  express:', Date.now());
-
 var browserify = require('browserify-middleware');
 var http = require('http');
 var socketIo = require('socket.io');
