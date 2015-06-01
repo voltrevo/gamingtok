@@ -4,7 +4,8 @@
   "description": "Round robin rock paper scissors tournament powered by OpenTok",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/server.js"
   },
   "author": "Andrew Morris",
   "license": "None",
