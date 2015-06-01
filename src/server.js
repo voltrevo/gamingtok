@@ -13,12 +13,30 @@ var app = express();
 var server = http.Server(app);
 var io = socketIo(server);
 
-server.listen(8080);
+server.listen(config.port);
 
 var projectRoot = __dirname + '/..';
 app.use('/index.js', browserify(__dirname + '/frontend/index.js'));
 app.use(express.static(projectRoot + '/public'));
 
 io.on('connection', function(sock) {
-  rps.addClient(sock);
+  (new Promise(function(resolve, reject) {
+
+    sock.once('init', resolve);
+    setTimeout(reject, 5000);
+
+  })).then(function() {
+
+    rps.addClient(sock);
+
+  }).catch(function() {
+
+    sock.emit('appError', JSON.stringify(
+      'Timeout while waiting for client\'s init message. ' +
+      'This can happen when the server restarts.'
+    ));
+
+    sock.close();
+
+  });
 });
