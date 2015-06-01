@@ -11,7 +11,11 @@
   "license": "None",
   "dependencies": {
     "browserify-middleware": "^5.0.2",
+    "configure": "git://github.com/voltrevo/node-configure",
     "express": "^4.12.4",
-    "opentok": "^2.2.5"
-  }
+    "opentok": "^2.2.5",
+    "socket.io": "^1.3.5",
+    "socket.io-client": "^1.3.5"
+  },
+  "private": true
 }
