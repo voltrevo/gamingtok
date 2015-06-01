@@ -1,0 +1,11 @@
+{
+  "name": "rock-paper-scissors",
+  "version": "0.0.1",
+  "description": "Round robin rock paper scissors tournament powered by OpenTok",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Andrew Morris",
+  "license": "None"
+}
