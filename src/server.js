@@ -27,7 +27,7 @@ io.on('connection', function(sock) {
 
   })).then(function() {
 
-    rps.addClient(sock);
+    rps.addSocket(sock);
 
   }).catch(function() {
 
