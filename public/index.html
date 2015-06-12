@@ -1,2 +1,26 @@
-<script src='//static.opentok.com/v2/js/opentok.min.js'></script>
-<script src='index.js'></script>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Rock Paper Scissors</title>
+
+    <link rel='stylesheet' href='style.css'/>
+
+    <script src='//static.opentok.com/v2/js/opentok.min.js'></script>
+    <script src='index.js'></script>
+  </head>
+  <body>
+    <div class='full-width-section title-section'>Rock Paper Scissors</div>
+
+    <div id='user-list' class='full-width-section user-list'></div>
+
+    <div id='streams-section' class='full-width-section streams-section' style='display: none;'>
+      <div>
+        <div id='your-stream' class='stream-container'></div>
+        <div id='your-stream-name' class='stream-name-label'>You</div>
+      </div><div>
+        <div id='opponents-stream' class='stream-container'></div>
+        <div id='opponents-stream-name' class='stream-name-label'>Evil Opponent</div>
+      </div>
+    </div>
+  </body>
+</html>

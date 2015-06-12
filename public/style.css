@@ -1,0 +1,69 @@
+body {
+  margin: 0;
+  font-family: arial;
+  background-color: #ccc;
+}
+
+.full-width-section {
+  width: 100%;
+  border-bottom: 1px solid black;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 10px;
+  background-color: #eee
+}
+
+.title-section {
+  background-color: #ffc;
+  font-size: 3em;
+}
+
+.user-list div {
+  display: inline-block;
+  background-color: #005c5c;
+  padding: 10px;
+  border-radius: 10px;
+  margin: 5px;
+  color: #fff;
+}
+
+.streams-section {
+  padding: 0;
+  min-width: 100vw;
+}
+
+.streams-section > div {
+  width: 50%;
+  display: inline-block;
+  padding-top: 10px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.streams-section > div > div {
+  display: block;
+  margin: auto;
+}
+
+.stream-container {
+  width: 40vw;
+  height: 30vw;
+  border-radius: 30px;
+  will-change: opacity;
+  overflow: hidden;
+}
+
+.stream-container > div {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.stream-container video {
+  width: 100%;
+  height: 100%;
+}
+
+.stream-name-label {
+  padding: 10px;
+}

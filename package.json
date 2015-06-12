@@ -12,6 +12,7 @@
   "dependencies": {
     "browserify-middleware": "^5.0.2",
     "express": "^4.12.4",
+    "mutex": "voltrevo/mutex#2d561b79b338db661371e1a2c9ba6122818876a9",
     "opentok": "^2.2.5",
     "socket.io": "^1.3.5",
     "socket.io-client": "^1.3.5"

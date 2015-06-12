@@ -6,18 +6,22 @@ var io = require('socket.io-client');
 
 var promptViaTextbox = function(desc) {
   return new Promise(function(resolve) {
+    var section = document.createElement('div');
+    section.setAttribute('class', 'full-width-section');
+
+    document.body.insertBefore(section, document.querySelector('#user-list').nextSibling);
+
     var textbox = document.createElement('input');
     textbox.setAttribute('type', 'text');
     textbox.setAttribute('placeholder', desc);
-    document.body.appendChild(textbox);
+    section.appendChild(textbox);
 
     var submitButton = document.createElement('button');
     submitButton.appendChild(document.createTextNode('Submit'));
-    document.body.appendChild(submitButton);
+    section.appendChild(submitButton);
 
     var submit = function() {
-      document.body.removeChild(textbox);
-      document.body.removeChild(submitButton);
+      document.body.removeChild(section);
       resolve(textbox.value);
     };
 
@@ -34,6 +38,67 @@ var promptViaTextbox = function(desc) {
   });
 };
 
+var removeChildren = function(el) {
+  while (el.firstChild) {
+    el.removeChild(el.firstChild);
+  }
+};
+
+var listenForFirstChild = function(el, timeout) {
+  return new Promise(function(resolve, reject) {
+    var poller = setInterval(function() {
+      if (el.firstChild) {
+        clearInterval(poller);
+        resolve(el.firstChild);
+      }
+    });
+
+    // Fail-safe to make sure poller stops
+    setTimeout(function() {
+      clearInterval(poller);
+      reject('timeout');
+    }, timeout || 1000);
+  });
+};
+
+var wrappedInitPublisher = function(el) {
+  return new Promise(function(resolve, reject) {
+    var publisher = OT.initPublisher(
+      el,
+      {insertMode: 'append'},
+      function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(publisher);
+        }
+      }
+    );
+
+    listenForFirstChild(el).then(function(firstChild) {
+      firstChild.style.width = '';
+      firstChild.style.height = '';
+    });
+  });
+};
+
+var wrappedSubscribe = function(session, stream, el) {
+  return new Promise(function(resolve, reject) {
+    session.subscribe(stream, el, {insertMode: 'append'}, function(err) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+
+    listenForFirstChild(el).then(function(firstChild) {
+      firstChild.style.width = '';
+      firstChild.style.height = '';
+    });
+  });
+};
+
 window.addEventListener('load', function() {
   var sock = io(window.location.origin);
 
@@ -45,24 +110,38 @@ window.addEventListener('load', function() {
 
   sock.on('userList', function(data) {
     var userList = JSON.parse(data);
-    console.log('userList:', userList);
+    var userListSection = document.querySelector('#user-list');
+
+    removeChildren(userListSection);
+
+    userList.forEach(function(username) {
+      var userDiv = document.createElement('div');
+      userDiv.appendChild(document.createTextNode(username));
+      userListSection.appendChild(userDiv);
+    });
   });
 
   promptViaTextbox('Your name').then(function(username) {
     sock.emit('username', username);
 
-    sock.on('startInfo', function(data) {
-      var startInfo = JSON.parse(data);
-      console.log('Got startInfo: ' + JSON.stringify(startInfo));
+    document.querySelector('#streams-section').style.display = '';
+    var publisherPromise = wrappedInitPublisher(document.querySelector('#your-stream'));
 
-      var session = OT.initSession(startInfo.apiKey, startInfo.sessionId);
-      session.connect(startInfo.token, function(error) {
+    sock.on('game', function(data) {
+      var game = JSON.parse(data);
+      console.log('Got game: ' + JSON.stringify(game));
+
+      var session = OT.initSession(game.apiKey, game.sessionId);
+
+      session.connect(game.token, function(error) {
         if (error) {
           console.log('Error connecting: ', error.code, error.message);
-        } else {
-          console.log('Connected to the session.');
+          return;
+        }
 
-          var publisher = OT.initPublisher();
+        console.log('Connected to the session.');
+
+        publisherPromise.then(function(publisher) {
           session.publish(publisher, function(err) {
             if (err) {
               throw err;
@@ -70,7 +149,12 @@ window.addEventListener('load', function() {
 
             console.log('Publishing stream.');
           });
-        }
+        });
+
+        session.on('streamCreated', function(event) {
+          console.log('New stream in the session: ' + event.stream.streamId);
+          wrappedSubscribe(session, event.stream, document.querySelector('#opponents-stream'));
+        });
       });
     });
   });
