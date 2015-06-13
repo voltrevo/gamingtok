@@ -1,6 +1,6 @@
 'use strict';
 
-var alertify = require('alertifyjs');
+var alertify = require('./alertify');
 
 module.exports = function insistPrompt(desc, defaultValue) {
   return new Promise(function(resolve) {

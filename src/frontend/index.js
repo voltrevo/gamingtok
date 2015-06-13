@@ -1,5 +1,6 @@
 'use strict';
 
+var alertify = require('./alertify');
 var opentok = require('../moduleCandidates/opentok');
 var sockception = require('sockception');
 var wsPort = require('../wsPort');
@@ -7,12 +8,9 @@ var consoleLogger = require('../moduleCandidates/consoleLogger');
 var removeChildren = require('../moduleCandidates/removeChildren');
 var listenForFirstChild = require('./listenForFirstChild');
 var insistPrompt = require('./insistPrompt');
+var runGame = require('./runGame');
 
 require('./style.css');
-
-var alertify = require('alertifyjs');
-require('../../node_modules/alertifyjs/build/css/alertify.css');
-require('../../node_modules/alertifyjs/build/css/themes/default.css');
 
 var streamsSection = require('./streamsSection.html');
 
@@ -73,23 +71,6 @@ opentok.then(function(OT) {
     });
   };
 
-  var wrappedSubscribe = function(session, stream, el) {
-    return new Promise(function(resolve, reject) {
-      session.subscribe(stream, el, {insertMode: 'append'}, function(err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-
-      listenForFirstChild(el).then(function(firstChild) {
-        firstChild.style.width = '';
-        firstChild.style.height = '';
-      });
-    });
-  };
-
   var sock = sockception.connect(
     'ws://' + window.location.hostname + ':' + wsPort + '/',
     consoleLogger('sockception:')
@@ -142,50 +123,11 @@ opentok.then(function(OT) {
       });
     });
 
-    var opponentSession = null;
-
-    sock.route('initGame').receiveMany(function(gameInfo) {
-      console.log('Got game:', gameInfo.value);
-
-      document.querySelector('#opponents-stream-name').innerHTML = gameInfo.value.opponentName;
-
-      opponentSession = OT.initSession(gameInfo.value.apiKey, gameInfo.value.sessionId);
-
-      opponentSession.connect(gameInfo.value.token, function(error) {
-        if (error) {
-          console.log('Error connecting: ', error.code, error.message);
-          return;
-        }
-
-        console.log('Connected to the session.');
-
-        opponentSession.on('streamCreated', function(event) {
-          console.log('New stream in the session: ' + event.stream.streamId);
-
-          wrappedSubscribe(
-            opponentSession,
-            event.stream,
-            document.querySelector('#opponents-stream')
-          );
-        });
-      });
+    sock.route('initGame').receiveMany(function(gameSocket) {
+      runGame(gameSocket, OT);
     });
 
-    sock.route('moveRequest').receiveMany(function() {
-      insistPrompt(
-        'rock/paper/scissors',
-        ['rock', 'paper', 'scissors'][Math.floor(Math.random() * 3)]
-      ).then(function(move) {
-        sock.route('move').send(move);
-      });
-    });
-
-    sock.route('closeGame').receiveMany(function() {
-      console.log('Got closeGame');
-      opponentSession.disconnect();
-    });
-
-    sock.route('tournamentResult').receiveMany(function(tournamentResult) {
+    sock.route('tournamentResult').receiveOne(function(tournamentResult) {
       alertify.alert(JSON.stringify(tournamentResult.value));
     });
   });
