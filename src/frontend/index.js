@@ -4,6 +4,9 @@ var opentok = require('../moduleCandidates/opentok');
 var sockception = require('sockception');
 var wsPort = require('../wsPort');
 var consoleLogger = require('../moduleCandidates/consoleLogger');
+var removeChildren = require('../moduleCandidates/removeChildren');
+var listenForFirstChild = require('./listenForFirstChild');
+var insistPrompt = require('./insistPrompt');
 
 require('./style.css');
 
@@ -48,29 +51,6 @@ var waitForButton = function(desc) {
   });
 };
 
-var removeChildren = function(el) {
-  while (el.firstChild) {
-    el.removeChild(el.firstChild);
-  }
-};
-
-var listenForFirstChild = function(el, timeout) {
-  return new Promise(function(resolve, reject) {
-    var poller = setInterval(function() {
-      if (el.firstChild) {
-        clearInterval(poller);
-        resolve(el.firstChild);
-      }
-    });
-
-    // Fail-safe to make sure poller stops
-    setTimeout(function() {
-      clearInterval(poller);
-      reject('timeout');
-    }, timeout || 1000);
-  });
-};
-
 opentok.then(function(OT) {
   var wrappedInitPublisher = function(el) {
     return new Promise(function(resolve, reject) {
@@ -91,19 +71,6 @@ opentok.then(function(OT) {
         firstChild.style.height = '';
       });
     });
-  };
-
-  var prompt = function(desc, defaultValue) {
-    return new Promise(function(resolve) {
-      alertify.prompt(desc, defaultValue,
-        function(evt, value){
-          resolve(value);
-        },
-        function(){
-          resolve(prompt(desc, defaultValue));
-        }
-      );
-    })
   };
 
   var wrappedSubscribe = function(session, stream, el) {
@@ -141,7 +108,7 @@ opentok.then(function(OT) {
 
     var publisherPromise = Promise.defer();
 
-    prompt('Your name', '').then(function(username) {
+    insistPrompt('Your name', '').then(function(username) {
       sock.route('username').send(username);
 
       document.querySelector('#streams-section').style.display = '';
@@ -205,7 +172,10 @@ opentok.then(function(OT) {
     });
 
     sock.route('moveRequest').receiveMany(function() {
-      prompt('rock/paper/scissors').then(function(move) {
+      insistPrompt(
+        'rock/paper/scissors',
+        ['rock', 'paper', 'scissors'][Math.floor(Math.random() * 3)]
+      ).then(function(move) {
         sock.route('move').send(move);
       });
     });
