@@ -35,3 +35,4 @@ Visit http://localhost:<i><b>your-port</b></i>/.
 - Make rock-paper-scissors into a real-time battle and move to separate repo
 - Support multiple rooms
 - Use alertify
+- OAuth2 integration
