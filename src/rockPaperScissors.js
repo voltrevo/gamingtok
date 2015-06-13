@@ -15,6 +15,18 @@ module.exports = function(config) {
   console.log('Initializing opentok with: ' + JSON.stringify(config));
   self.otHandle = opentok(config.apiKey, config.apiSecret);
 
+  self.createSession = function() {
+    return new Promise(function(resolve, reject) {
+      self.otHandle.createSession(function(err, session) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(session);
+        }
+      });
+    });
+  };
+
   self.getUserList = function() {
     return self.clients.map(function(client) { return client.username; });
   };
@@ -36,7 +48,8 @@ module.exports = function(config) {
         startRequested: false,
         inGame: false,
         disconnected: false,
-        score: 0
+        score: 0,
+        session: self.createSession()
       };
 
       sock.once('close', function() {
@@ -51,25 +64,26 @@ module.exports = function(config) {
     self.clients.push(client);
     self.broadcast('userList', JSON.stringify(self.getUserList()));
 
+    client.session.then(function(session) {
+      client.socket.emit('initOwnSession', JSON.stringify({
+        id: session.sessionId,
+        apiKey: config.apiKey,
+        token: session.generateToken()
+      }));
+    });
+
     client.socket.once('disconnect', function() {
       self.clients = self.clients.filter(function(otherClient) {
         return otherClient !== client;
       });
 
-      if (self.waitingClient === client) {
-        self.waitingClient = null;
-      }
-
       self.broadcast('userList', JSON.stringify(self.getUserList()));
     });
 
-    if (!self.waitingClient) {
-      self.waitingClient = client;
-      return;
-    }
-
     client.socket.once('requestStart', function() {
       client.startRequested = true;
+
+      console.log('Trying to start');
 
       if (self.readyToStart()) {
         self.start();
@@ -86,15 +100,19 @@ module.exports = function(config) {
   };
 
   self.readyToStart = function() {
-    return (self.countStartRequests() === self.clients.length);
+    var numStartRequests = self.countStartRequests();
+    var numClients = self.clients.length;
+    console.log('requests:', numStartRequests, 'clients:', numClients);
+
+    return (numStartRequests === numClients);
   };
 
   self.start = function() {
+    console.log('Starting!');
+
     Promise.all(
-      shuffle(
-        getPairs(self.clients).map(shuffle)
-      ).map(function(clientPair) {
-        return self.runGameBetweenClients(clientPair[0], clientPair[1], 5);
+      shuffle(getPairs(self.clients).map(shuffle)).map(function(clientPair) {
+        return self.runGameBetweenClients(clientPair[0], clientPair[1], 1);
       })
     ).then(function(winners) {
       winners.forEach(function(winner) {
@@ -111,26 +129,35 @@ module.exports = function(config) {
         };
       });
 
-      self.broadcast('tournamentResult', tournamentResult);
+      console.log('Tournament Result:', tournamentResult);
+
+      self.broadcast('tournamentResult', JSON.stringify(tournamentResult));
     });
   };
 
-  self.initSessionForClients = function(clientA, clientB) {
-    self.otHandle.createSession(function(err, session) {
-      if (err) {
-        throw err;
-      }
+  self.initGameForClients = function(clientA, clientB) {
+    console.log('initGameForClients', clientA.username, clientB.username);
 
-      console.log('Created session, id: ' + session.sessionId);
+    [clientA, clientB].forEach(function(client) {
+      var opponent = (client === clientA ? clientB : clientA);
 
-      [clientA, clientB].forEach(function(client) {
-        client.inGame = true;
-        client.socket.emit('game', JSON.stringify({
+      opponent.session.then(function(opponentSession) {
+        var gameInfo = {
           apiKey: config.apiKey,
-          sessionId: session.sessionId,
-          token: session.generateToken()
-        }));
-      });
+          sessionId: opponentSession.sessionId,
+          token: opponentSession.generateToken(),
+          opponentName: opponent.username
+        };
+
+        console.log('sending', gameInfo, 'to', client.username);
+        client.socket.emit('initGame', JSON.stringify(gameInfo));
+      })
+    });
+  };
+
+  self.closeGameForClients = function(clientA, clientB) {
+    [clientA, clientB].forEach(function(client) {
+      client.socket.emit('closeGame');
     });
   };
 
@@ -154,6 +181,8 @@ module.exports = function(config) {
   };
 
   self.runGameBetweenClients = function(clientA, clientB, numRounds) {
+    console.log('Queuing game between', clientA.username, 'and', clientB.username);
+
     if (clientA.disconnected) {
       return clientB;
     }
@@ -165,16 +194,25 @@ module.exports = function(config) {
     var clientAScore = 0;
     var clientBScore = 0;
 
-    return mutex.or([clientA.mutex, clientB.mutex]).lock().then(function(mutexHandle) {
-      self.initSessionForClients(clientA, clientB);
+    return mutex.and([clientA.mutex, clientB.mutex]).lock().then(function(mutexHandle) {
+      console.log('Got locks for', clientA.username, 'and', clientB.username);
+      self.initGameForClients(clientA, clientB);
 
       return (function runRound() {
         if (clientAScore + clientBScore === numRounds) {
+          self.closeGameForClients(clientA, clientB);
+
+          var winner = (clientAScore >= clientBScore ? clientA : clientB);
+          console.log(winner.username, 'won a game');
+
           mutexHandle.release();
-          return (clientAScore >= clientBScore ? clientA : clientB);
+
+          return winner;
         }
 
         return self.runRoundBetweenClients(clientA, clientB).then(function(winner) {
+          console.log(winner.username, 'won a round');
+
           if (winner === clientA) {
             clientAScore++;
           } else {

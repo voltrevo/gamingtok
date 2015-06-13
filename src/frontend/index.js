@@ -38,6 +38,24 @@ var promptViaTextbox = function(desc) {
   });
 };
 
+var waitForButton = function(desc) {
+  return new Promise(function(resolve) {
+    var section = document.createElement('div');
+    section.setAttribute('class', 'full-width-section');
+
+    document.body.insertBefore(section, document.querySelector('#user-list').nextSibling);
+
+    var submitButton = document.createElement('button');
+    submitButton.appendChild(document.createTextNode(desc));
+    section.appendChild(submitButton);
+
+    submitButton.addEventListener('click', function() {
+      document.body.removeChild(section);
+      resolve();
+    });
+  });
+};
+
 var removeChildren = function(el) {
   while (el.firstChild) {
     el.removeChild(el.firstChild);
@@ -121,41 +139,87 @@ window.addEventListener('load', function() {
     });
   });
 
+  var publisherPromise = Promise.defer();
+
   promptViaTextbox('Your name').then(function(username) {
     sock.emit('username', username);
 
     document.querySelector('#streams-section').style.display = '';
-    var publisherPromise = wrappedInitPublisher(document.querySelector('#your-stream'));
+    publisherPromise.resolve(wrappedInitPublisher(document.querySelector('#your-stream')));
 
-    sock.on('game', function(data) {
-      var game = JSON.parse(data);
-      console.log('Got game: ' + JSON.stringify(game));
+    return waitForButton('Let\'s Begin');
+  }).then(function() {
+    sock.emit('requestStart');
+  });
 
-      var session = OT.initSession(game.apiKey, game.sessionId);
+  sock.on('initOwnSession', function(data) {
+    var ownSessionInfo = JSON.parse(data);
+    console.log('ownSessionInfo', ownSessionInfo);
 
-      session.connect(game.token, function(error) {
-        if (error) {
-          console.log('Error connecting: ', error.code, error.message);
-          return;
-        }
+    var ownSession = OT.initSession(ownSessionInfo.apiKey, ownSessionInfo.id);
 
-        console.log('Connected to the session.');
+    ownSession.connect(ownSessionInfo.token, function(error) {
+      if (error) {
+        console.error('Error connecting: ', error.code, error.message);
+        return;
+      }
 
-        publisherPromise.then(function(publisher) {
-          session.publish(publisher, function(err) {
-            if (err) {
-              throw err;
-            }
+      publisherPromise.promise.then(function(publisher) {
+        console.log('Publishing stream.');
 
-            console.log('Publishing stream.');
-          });
-        });
-
-        session.on('streamCreated', function(event) {
-          console.log('New stream in the session: ' + event.stream.streamId);
-          wrappedSubscribe(session, event.stream, document.querySelector('#opponents-stream'));
+        ownSession.publish(publisher, function(err) {
+          if (err) {
+            throw err;
+          }
         });
       });
     });
   });
+
+  var opponentSession = null;
+
+  sock.on('initGame', function(data) {
+    var gameInfo = JSON.parse(data);
+    console.log('Got game: ' + JSON.stringify(gameInfo));
+
+    document.querySelector('#opponents-stream-name').innerHTML = gameInfo.opponentName;
+
+    opponentSession = OT.initSession(gameInfo.apiKey, gameInfo.sessionId);
+
+    opponentSession.connect(gameInfo.token, function(error) {
+      if (error) {
+        console.log('Error connecting: ', error.code, error.message);
+        return;
+      }
+
+      console.log('Connected to the session.');
+
+      opponentSession.on('streamCreated', function(event) {
+        console.log('New stream in the session: ' + event.stream.streamId);
+
+        wrappedSubscribe(
+          opponentSession,
+          event.stream,
+          document.querySelector('#opponents-stream')
+        );
+      });
+    });
+  });
+
+  sock.on('moveRequest', function() {
+    promptViaTextbox('rock/paper/scissors').then(function(move) {
+      sock.emit('move', move);
+    });
+  });
+
+  sock.on('closeGame', function() {
+    console.log('Got closeGame');
+    opponentSession.disconnect();
+  });
+
+  sock.on('tournamentResult', function(data) {
+    var tournamentResult = JSON.parse(data);
+
+    window.alert(JSON.stringify(tournamentResult));
+  })
 });
