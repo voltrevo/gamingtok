@@ -22,7 +22,6 @@
   "dependencies": {
     "alertifyjs": "^1.4.1",
     "cssify": "^0.7.0",
-    "express": "^4.12.4",
     "html2jsify": "0.0.2",
     "mutex": "voltrevo/mutex#2d561b79b338db661371e1a2c9ba6122818876a9",
     "nakedjs": "^0.1.0",

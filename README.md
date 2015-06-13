@@ -33,5 +33,4 @@ Visit http://localhost:<i><b>your-port</b></i>/.
 - Text chat
 - Separate game logic and support more games via plugin design
 - Make rock-paper-scissors into a real-time battle and move to separate repo
-- Support multiple rooms
 - OAuth2 integration

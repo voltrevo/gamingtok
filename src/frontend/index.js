@@ -71,12 +71,14 @@ opentok.then(function(OT) {
     });
   };
 
-  var sock = sockception.connect(
+  var baseSock = sockception.connect(
     'ws://' + window.location.hostname + ':' + wsPort + '/',
     consoleLogger('sockception:')
   );
 
-  sock.route('connected').receiveOne(function() {
+  baseSock.route('connected').receiveOne(function() {
+    var sock = baseSock.route('joinRoom').send(window.location.pathname);
+
     sock.route('userList').receiveMany(function(userList) {
       removeChildren(userListSection);
 
