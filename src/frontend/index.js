@@ -1,9 +1,9 @@
 'use strict';
 
-var opentok = require('./opentok');
+var opentok = require('../moduleCandidates/opentok');
 var sockception = require('sockception');
 var wsPort = require('../wsPort');
-var consoleLogger = require('../consoleLogger');
+var consoleLogger = require('../moduleCandidates/consoleLogger');
 
 require('./style.css');
 

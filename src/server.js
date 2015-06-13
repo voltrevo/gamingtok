@@ -5,9 +5,9 @@ var wsPort = require('./wsPort');
 var express = require('express');
 var nakedjs = require('nakedjs');
 var http = require('http');
-var sockception = require("sockception");
+var sockception = require('sockception');
 var rockPaperScissors = require('./rockPaperScissors');
-var consoleLogger = require('./consoleLogger');
+var consoleLogger = require('./moduleCandidates/consoleLogger');
 
 var rps = rockPaperScissors(config.opentokAuth);
 

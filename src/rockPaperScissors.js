@@ -4,8 +4,8 @@ var mutex = require('mutex');
 var opentok = require('opentok');
 
 var coreRockPaperScissors = require('./coreRockPaperScissors');
-var shuffle = require('./shuffle');
-var getPairs = require('./getPairs');
+var shuffle = require('./moduleCandidates/shuffle');
+var getPairs = require('./moduleCandidates/getPairs');
 
 module.exports = function(config) {
   var self = (new (function rockPaperScissors(){}));
