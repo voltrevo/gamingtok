@@ -34,5 +34,4 @@ Visit http://localhost:<i><b>your-port</b></i>/.
 - Separate game logic and support more games via plugin design
 - Make rock-paper-scissors into a real-time battle and move to separate repo
 - Support multiple rooms
-- Use alertify
 - OAuth2 integration

@@ -7,6 +7,10 @@ var consoleLogger = require('../consoleLogger');
 
 require('./style.css');
 
+var alertify = require('alertifyjs');
+require('../../node_modules/alertifyjs/build/css/alertify.css');
+require('../../node_modules/alertifyjs/build/css/themes/default.css');
+
 var streamsSection = require('./streamsSection.html');
 
 var userListSection;
@@ -233,7 +237,7 @@ opentok.then(function(OT) {
     });
 
     sock.route('tournamentResult').receiveMany(function(tournamentResult) {
-      window.alert(JSON.stringify(tournamentResult.value));
+      alertify.alert(JSON.stringify(tournamentResult.value));
     });
   });
 });
