@@ -28,7 +28,6 @@ Visit http://localhost:<i><b>your-port</b></i>/.
 # Planning
 - Better docs ;-)
 - Do logging properly
-- Separate frontend components
 - Lobby area for waiting participants
 - Text chat
 - Separate game logic and support more games via plugin design
