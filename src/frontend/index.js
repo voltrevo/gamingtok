@@ -1,15 +1,35 @@
 'use strict';
 
-/* global OT */
-
+var opentok = require('./opentok');
 var io = require('socket.io-client');
+
+require('./style.css');
+
+var streamsSection = require('./streamsSection.html');
+
+var userListSection;
+
+window.addEventListener('load', function() {
+  document.title = 'GamingTok';
+
+  var titleSection = document.createElement('div');
+  titleSection.setAttribute('class', 'full-width-section title-section');
+  titleSection.innerHTML = 'GamingTok';
+  document.body.appendChild(titleSection);
+
+  userListSection = document.createElement('div');
+  userListSection.setAttribute('class', 'full-width-section user-list');
+  document.body.appendChild(userListSection);
+
+  document.body.appendChild(streamsSection());
+});
 
 var promptViaTextbox = function(desc) {
   return new Promise(function(resolve) {
     var section = document.createElement('div');
     section.setAttribute('class', 'full-width-section');
 
-    document.body.insertBefore(section, document.querySelector('#user-list').nextSibling);
+    document.body.insertBefore(section, userListSection.nextSibling);
 
     var textbox = document.createElement('input');
     textbox.setAttribute('type', 'text');
@@ -43,7 +63,7 @@ var waitForButton = function(desc) {
     var section = document.createElement('div');
     section.setAttribute('class', 'full-width-section');
 
-    document.body.insertBefore(section, document.querySelector('#user-list').nextSibling);
+    document.body.insertBefore(section, userListSection.nextSibling);
 
     var submitButton = document.createElement('button');
     submitButton.appendChild(document.createTextNode(desc));
@@ -79,45 +99,45 @@ var listenForFirstChild = function(el, timeout) {
   });
 };
 
-var wrappedInitPublisher = function(el) {
-  return new Promise(function(resolve, reject) {
-    var publisher = OT.initPublisher(
-      el,
-      {insertMode: 'append'},
-      function(err) {
+opentok.then(function(OT) {
+  var wrappedInitPublisher = function(el) {
+    return new Promise(function(resolve, reject) {
+      var publisher = OT.initPublisher(
+        el,
+        {insertMode: 'append'},
+        function(err) {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(publisher);
+          }
+        }
+      );
+
+      listenForFirstChild(el).then(function(firstChild) {
+        firstChild.style.width = '';
+        firstChild.style.height = '';
+      });
+    });
+  };
+
+  var wrappedSubscribe = function(session, stream, el) {
+    return new Promise(function(resolve, reject) {
+      session.subscribe(stream, el, {insertMode: 'append'}, function(err) {
         if (err) {
           reject(err);
         } else {
-          resolve(publisher);
+          resolve();
         }
-      }
-    );
+      });
 
-    listenForFirstChild(el).then(function(firstChild) {
-      firstChild.style.width = '';
-      firstChild.style.height = '';
+      listenForFirstChild(el).then(function(firstChild) {
+        firstChild.style.width = '';
+        firstChild.style.height = '';
+      });
     });
-  });
-};
+  };
 
-var wrappedSubscribe = function(session, stream, el) {
-  return new Promise(function(resolve, reject) {
-    session.subscribe(stream, el, {insertMode: 'append'}, function(err) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-
-    listenForFirstChild(el).then(function(firstChild) {
-      firstChild.style.width = '';
-      firstChild.style.height = '';
-    });
-  });
-};
-
-window.addEventListener('load', function() {
   var sock = io(window.location.origin);
 
   sock.on('appError', function(data) {
@@ -128,7 +148,6 @@ window.addEventListener('load', function() {
 
   sock.on('userList', function(data) {
     var userList = JSON.parse(data);
-    var userListSection = document.querySelector('#user-list');
 
     removeChildren(userListSection);
 

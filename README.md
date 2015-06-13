@@ -27,7 +27,6 @@ Visit http://localhost:<i><b>your-port</b></i>/.
 
 # Planning
 - Better docs ;-)
-- Port webserver to nakedjs
 - Port messaging to sockception
 - Lobby area for waiting participants
 - Text chat
