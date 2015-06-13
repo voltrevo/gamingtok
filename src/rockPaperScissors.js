@@ -33,16 +33,16 @@ module.exports = function(config) {
 
   self.broadcast = function(evt, data) {
     self.clients.forEach(function(client) {
-      client.socket.emit(evt, data);
+      client.socket.route(evt).send(data);
     });
   };
 
   self.addSocket = function(sock) {
-    sock.emit('userList', JSON.stringify(self.getUserList()));
+    sock.route('userList').send(self.getUserList());
 
-    sock.once('username', function(username) {
+    sock.route('username').receiveOne(function(username) {
       var client = {
-        username: username,
+        username: username.value,
         mutex: mutex.create(client),
         socket: sock,
         startRequested: false,
@@ -52,7 +52,7 @@ module.exports = function(config) {
         session: self.createSession()
       };
 
-      sock.once('close', function() {
+      sock.onclose(function() {
         client.disconnected = true;
       });
 
@@ -62,25 +62,25 @@ module.exports = function(config) {
 
   self.addClient = function(client) {
     self.clients.push(client);
-    self.broadcast('userList', JSON.stringify(self.getUserList()));
+    self.broadcast('userList', self.getUserList());
 
     client.session.then(function(session) {
-      client.socket.emit('initOwnSession', JSON.stringify({
+      client.socket.route('initOwnSession').send({
         id: session.sessionId,
         apiKey: config.apiKey,
         token: session.generateToken()
-      }));
+      });
     });
 
-    client.socket.once('disconnect', function() {
+    client.socket.onclose(function() {
       self.clients = self.clients.filter(function(otherClient) {
         return otherClient !== client;
       });
 
-      self.broadcast('userList', JSON.stringify(self.getUserList()));
+      self.broadcast('userList', self.getUserList());
     });
 
-    client.socket.once('requestStart', function() {
+    client.socket.route('requestStart').receiveOne(function() {
       client.startRequested = true;
 
       console.log('Trying to start');
@@ -131,7 +131,7 @@ module.exports = function(config) {
 
       console.log('Tournament Result:', tournamentResult);
 
-      self.broadcast('tournamentResult', JSON.stringify(tournamentResult));
+      self.broadcast('tournamentResult', tournamentResult);
     });
   };
 
@@ -150,14 +150,14 @@ module.exports = function(config) {
         };
 
         console.log('sending', gameInfo, 'to', client.username);
-        client.socket.emit('initGame', JSON.stringify(gameInfo));
-      })
+        client.socket.route('initGame').send(gameInfo);
+      });
     });
   };
 
   self.closeGameForClients = function(clientA, clientB) {
     [clientA, clientB].forEach(function(client) {
-      client.socket.emit('closeGame');
+      client.socket.route('closeGame').send();
     });
   };
 
@@ -168,13 +168,14 @@ module.exports = function(config) {
         return;
       }
 
-      client.socket.emit('moveRequest');
+      client.socket.route('moveRequest').send();
 
-      client.socket.once('move', function(data) {
-        resolve(data.toString());
+      client.socket.route('move').receiveOne(function(move) {
+        resolve(move.value);
       });
 
-      client.socket.once('close', function() {
+      // TODO: this may pile up lots of close handlers :/
+      client.socket.onclose(function() {
         resolve('disconnected');
       });
     });

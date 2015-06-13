@@ -26,7 +26,6 @@
     "mutex": "voltrevo/mutex#2d561b79b338db661371e1a2c9ba6122818876a9",
     "nakedjs": "^0.1.0",
     "opentok": "^2.2.5",
-    "socket.io": "^1.3.5",
-    "socket.io-client": "^1.3.5"
+    "sockception": "0.0.3"
   }
 }

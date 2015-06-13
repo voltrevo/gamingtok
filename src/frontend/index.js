@@ -1,7 +1,9 @@
 'use strict';
 
 var opentok = require('./opentok');
-var io = require('socket.io-client');
+var sockception = require('sockception');
+var wsPort = require('../wsPort');
+var consoleLogger = require('../consoleLogger');
 
 require('./style.css');
 
@@ -138,107 +140,100 @@ opentok.then(function(OT) {
     });
   };
 
-  var sock = io(window.location.origin);
+  var sock = sockception.connect(
+    'ws://' + window.location.hostname + ':' + wsPort + '/',
+    consoleLogger('sockception:')
+  );
 
-  sock.on('appError', function(data) {
-    console.error('Server error:', JSON.parse(data));
-  });
+  sock.route('connected').receiveOne(function() {
+    sock.route('userList').receiveMany(function(userList) {
+      removeChildren(userListSection);
 
-  sock.emit('init');
-
-  sock.on('userList', function(data) {
-    var userList = JSON.parse(data);
-
-    removeChildren(userListSection);
-
-    userList.forEach(function(username) {
-      var userDiv = document.createElement('div');
-      userDiv.appendChild(document.createTextNode(username));
-      userListSection.appendChild(userDiv);
+      userList.value.forEach(function(username) {
+        var userDiv = document.createElement('div');
+        userDiv.appendChild(document.createTextNode(username));
+        userListSection.appendChild(userDiv);
+      });
     });
-  });
 
-  var publisherPromise = Promise.defer();
+    var publisherPromise = Promise.defer();
 
-  promptViaTextbox('Your name').then(function(username) {
-    sock.emit('username', username);
+    promptViaTextbox('Your name').then(function(username) {
+      sock.route('username').send(username);
 
-    document.querySelector('#streams-section').style.display = '';
-    publisherPromise.resolve(wrappedInitPublisher(document.querySelector('#your-stream')));
+      document.querySelector('#streams-section').style.display = '';
+      publisherPromise.resolve(wrappedInitPublisher(document.querySelector('#your-stream')));
 
-    return waitForButton('Let\'s Begin');
-  }).then(function() {
-    sock.emit('requestStart');
-  });
+      return waitForButton('Let\'s Begin');
+    }).then(function() {
+      sock.route('requestStart').send();
+    });
 
-  sock.on('initOwnSession', function(data) {
-    var ownSessionInfo = JSON.parse(data);
-    console.log('ownSessionInfo', ownSessionInfo);
+    sock.route('initOwnSession').receiveMany(function(ownSessionInfo) {
+      console.log('ownSessionInfo', ownSessionInfo.value);
 
-    var ownSession = OT.initSession(ownSessionInfo.apiKey, ownSessionInfo.id);
+      var ownSession = OT.initSession(ownSessionInfo.value.apiKey, ownSessionInfo.value.id);
 
-    ownSession.connect(ownSessionInfo.token, function(error) {
-      if (error) {
-        console.error('Error connecting: ', error.code, error.message);
-        return;
-      }
+      ownSession.connect(ownSessionInfo.value.token, function(error) {
+        if (error) {
+          console.error('Error connecting: ', error.code, error.message);
+          return;
+        }
 
-      publisherPromise.promise.then(function(publisher) {
-        console.log('Publishing stream.');
+        publisherPromise.promise.then(function(publisher) {
+          console.log('Publishing stream.');
 
-        ownSession.publish(publisher, function(err) {
-          if (err) {
-            throw err;
-          }
+          ownSession.publish(publisher, function(err) {
+            if (err) {
+              throw err;
+            }
+          });
         });
       });
     });
-  });
 
-  var opponentSession = null;
+    var opponentSession = null;
 
-  sock.on('initGame', function(data) {
-    var gameInfo = JSON.parse(data);
-    console.log('Got game: ' + JSON.stringify(gameInfo));
+    sock.route('initGame').receiveMany(function(gameInfo) {
+      console.log('Got game:', gameInfo.value);
 
-    document.querySelector('#opponents-stream-name').innerHTML = gameInfo.opponentName;
+      document.querySelector('#opponents-stream-name').innerHTML = gameInfo.value.opponentName;
 
-    opponentSession = OT.initSession(gameInfo.apiKey, gameInfo.sessionId);
+      opponentSession = OT.initSession(gameInfo.value.apiKey, gameInfo.value.sessionId);
 
-    opponentSession.connect(gameInfo.token, function(error) {
-      if (error) {
-        console.log('Error connecting: ', error.code, error.message);
-        return;
-      }
+      opponentSession.connect(gameInfo.value.token, function(error) {
+        if (error) {
+          console.log('Error connecting: ', error.code, error.message);
+          return;
+        }
 
-      console.log('Connected to the session.');
+        console.log('Connected to the session.');
 
-      opponentSession.on('streamCreated', function(event) {
-        console.log('New stream in the session: ' + event.stream.streamId);
+        opponentSession.on('streamCreated', function(event) {
+          console.log('New stream in the session: ' + event.stream.streamId);
 
-        wrappedSubscribe(
-          opponentSession,
-          event.stream,
-          document.querySelector('#opponents-stream')
-        );
+          wrappedSubscribe(
+            opponentSession,
+            event.stream,
+            document.querySelector('#opponents-stream')
+          );
+        });
       });
     });
-  });
 
-  sock.on('moveRequest', function() {
-    promptViaTextbox('rock/paper/scissors').then(function(move) {
-      sock.emit('move', move);
+    sock.route('moveRequest').receiveMany(function() {
+      promptViaTextbox('rock/paper/scissors').then(function(move) {
+        sock.route('move').send(move);
+      });
+    });
+
+    sock.route('closeGame').receiveMany(function() {
+      console.log('Got closeGame');
+      opponentSession.disconnect();
+    });
+
+    sock.route('tournamentResult').receiveMany(function(tournamentResult) {
+      window.alert(JSON.stringify(tournamentResult.value));
     });
   });
-
-  sock.on('closeGame', function() {
-    console.log('Got closeGame');
-    opponentSession.disconnect();
-  });
-
-  sock.on('tournamentResult', function(data) {
-    var tournamentResult = JSON.parse(data);
-
-    window.alert(JSON.stringify(tournamentResult));
-  })
 });
