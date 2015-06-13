@@ -30,40 +30,6 @@ window.addEventListener('load', function() {
   document.body.appendChild(streamsSection());
 });
 
-var promptViaTextbox = function(desc) {
-  return new Promise(function(resolve) {
-    var section = document.createElement('div');
-    section.setAttribute('class', 'full-width-section');
-
-    document.body.insertBefore(section, userListSection.nextSibling);
-
-    var textbox = document.createElement('input');
-    textbox.setAttribute('type', 'text');
-    textbox.setAttribute('placeholder', desc);
-    section.appendChild(textbox);
-
-    var submitButton = document.createElement('button');
-    submitButton.appendChild(document.createTextNode('Submit'));
-    section.appendChild(submitButton);
-
-    var submit = function() {
-      document.body.removeChild(section);
-      resolve(textbox.value);
-    };
-
-    submitButton.addEventListener('click', function() {
-      submit();
-    });
-
-    textbox.addEventListener('keydown', function(event) {
-      // Enter
-      if (event.keyCode === 13) {
-        submit();
-      }
-    });
-  });
-};
-
 var waitForButton = function(desc) {
   return new Promise(function(resolve) {
     var section = document.createElement('div');
@@ -127,6 +93,19 @@ opentok.then(function(OT) {
     });
   };
 
+  var prompt = function(desc, defaultValue) {
+    return new Promise(function(resolve) {
+      alertify.prompt(desc, defaultValue,
+        function(evt, value){
+          resolve(value);
+        },
+        function(){
+          resolve(prompt(desc, defaultValue));
+        }
+      );
+    })
+  };
+
   var wrappedSubscribe = function(session, stream, el) {
     return new Promise(function(resolve, reject) {
       session.subscribe(stream, el, {insertMode: 'append'}, function(err) {
@@ -162,7 +141,7 @@ opentok.then(function(OT) {
 
     var publisherPromise = Promise.defer();
 
-    promptViaTextbox('Your name').then(function(username) {
+    prompt('Your name', '').then(function(username) {
       sock.route('username').send(username);
 
       document.querySelector('#streams-section').style.display = '';
@@ -226,7 +205,7 @@ opentok.then(function(OT) {
     });
 
     sock.route('moveRequest').receiveMany(function() {
-      promptViaTextbox('rock/paper/scissors').then(function(move) {
+      prompt('rock/paper/scissors').then(function(move) {
         sock.route('move').send(move);
       });
     });
