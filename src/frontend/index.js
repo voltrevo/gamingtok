@@ -1,11 +1,11 @@
 'use strict';
 
 var alertify = require('./alertify');
-var opentok = require('../moduleCandidates/opentok');
+var opentok = require('../shared/moduleCandidates/opentok');
 var sockception = require('sockception');
-var wsPort = require('../wsPort');
-var consoleLogger = require('../moduleCandidates/consoleLogger');
-var removeChildren = require('../moduleCandidates/removeChildren');
+var wsPort = require('../shared/wsPort');
+var consoleLogger = require('../shared/moduleCandidates/consoleLogger');
+var removeChildren = require('../shared/moduleCandidates/removeChildren');
 var listenForFirstChild = require('./listenForFirstChild');
 var insistPrompt = require('./insistPrompt');
 var runGame = require('./runGame');

@@ -2,8 +2,8 @@
 
 var mutex = require('mutex');
 
-var shuffle = require('./moduleCandidates/shuffle');
-var getPairs = require('./moduleCandidates/getPairs');
+var shuffle = require('../shared/moduleCandidates/shuffle');
+var getPairs = require('../shared/moduleCandidates/getPairs');
 
 module.exports = function(otHandle, game) {
   var self = (new (function rockPaperScissors(){}));

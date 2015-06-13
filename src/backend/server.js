@@ -1,19 +1,19 @@
 'use strict';
 
 var config = require('./configure');
-var wsPort = require('./wsPort');
+var wsPort = require('../shared/wsPort');
 var nakedjs = require('nakedjs');
 var http = require('http');
 var sockception = require('sockception');
 var roundRobin = require('./roundRobin');
 var rockPaperScissors = require('./rockPaperScissors');
-var consoleLogger = require('./moduleCandidates/consoleLogger');
+var consoleLogger = require('../shared/moduleCandidates/consoleLogger');
 var otHandle = require('./otHandle')(config.opentokAuth);
 
 var rooms = {};
 
 http.Server(
-  nakedjs(__dirname + '/frontend/index.js')
+  nakedjs(__dirname + '/../frontend/index.js')
 ).listen(config.port);
 
 sockception.listen(
