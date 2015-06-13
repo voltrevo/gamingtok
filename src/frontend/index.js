@@ -97,9 +97,13 @@ opentok.then(function(OT) {
       document.querySelector('#streams-section').style.display = '';
       publisherPromise.resolve(wrappedInitPublisher(document.querySelector('#your-stream')));
 
-      return waitForButton('Let\'s Begin');
-    }).then(function() {
-      sock.route('requestStart').send();
+      sock.route('isRunning').send().receiveOne(function(running) {
+        if (!running.value) {
+          waitForButton('Let\'s Begin').then(function() {
+            sock.route('requestStart').send();
+          });
+        }
+      });
     });
 
     sock.route('initOwnSession').receiveMany(function(ownSessionInfo) {
@@ -131,6 +135,10 @@ opentok.then(function(OT) {
 
     sock.route('tournamentResult').receiveOne(function(tournamentResult) {
       alertify.alert(JSON.stringify(tournamentResult.value));
+
+      waitForButton('Let\'s Begin').then(function() {
+        sock.route('requestStart').send();
+      });
     });
   });
 });

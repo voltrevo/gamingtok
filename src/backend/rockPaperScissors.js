@@ -38,7 +38,9 @@ module.exports = function(numRounds) {
 
     return (function loop() {
       if (totalScore() === numRounds) {
-        return leadingPlayer();
+        var leader = leadingPlayer();
+        console.log('Game winner:', leader);
+        return leader;
       }
 
       return runRound(players).then(function(winner) {

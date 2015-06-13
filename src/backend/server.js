@@ -5,7 +5,7 @@ var wsPort = require('../shared/wsPort');
 var nakedjs = require('nakedjs');
 var http = require('http');
 var sockception = require('sockception');
-var roundRobin = require('./roundRobin');
+var Room = require('./room');
 var rockPaperScissors = require('./rockPaperScissors');
 var consoleLogger = require('../shared/moduleCandidates/consoleLogger');
 var otHandle = require('./otHandle')(config.opentokAuth);
@@ -26,7 +26,7 @@ sockception.listen(
     var room = rooms[joinRoom.value];
 
     if (!room) {
-      room = roundRobin(otHandle, rockPaperScissors(1));
+      room = Room(otHandle, rockPaperScissors(1));
       rooms[joinRoom.value] = room;
       console.log('Room created:', JSON.stringify(joinRoom.value));
     }
