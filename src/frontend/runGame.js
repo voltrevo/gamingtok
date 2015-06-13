@@ -8,11 +8,11 @@ module.exports = function(gameSocket, OT) {
 
   var wrappedSubscribe = function(session, stream, el) {
     return new Promise(function(resolve, reject) {
-      session.subscribe(stream, el, {insertMode: 'append'}, function(err) {
+      var subscriber = session.subscribe(stream, el, {insertMode: 'append'}, function(err) {
         if (err) {
           reject(err);
         } else {
-          resolve();
+          resolve(subscriber);
         }
       });
 
@@ -27,6 +27,7 @@ module.exports = function(gameSocket, OT) {
   document.querySelector('#opponents-stream-name').innerHTML = gameInfo.opponentName;
 
   var opponentSession = OT.initSession(gameInfo.apiKey, gameInfo.sessionId);
+  var opponentSubscriber = null;
 
   opponentSession.connect(gameInfo.token, function(error) {
     if (error) {
@@ -37,13 +38,15 @@ module.exports = function(gameSocket, OT) {
     console.log('Connected to the session.');
 
     opponentSession.on('streamCreated', function(event) {
-      console.log('New stream in the session: ' + event.stream.streamId);
+      console.log('New stream in the session:', event.stream.streamId);
 
       wrappedSubscribe(
         opponentSession,
         event.stream,
         document.querySelector('#opponents-stream')
-      );
+      ).then(function(subscriber) {
+        opponentSubscriber = subscriber;
+      });
     });
   });
 
@@ -58,6 +61,11 @@ module.exports = function(gameSocket, OT) {
 
   gameSocket.route('closeGame').receiveOne(function() {
     console.log('Got closeGame');
+
+    if (opponentSubscriber) {
+      opponentSession.unsubscribe(opponentSubscriber);
+    }
+
     opponentSession.disconnect();
   });
 };
