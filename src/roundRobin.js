@@ -1,32 +1,18 @@
 'use strict';
 
 var mutex = require('mutex');
-var opentok = require('opentok');
 
 var shuffle = require('./moduleCandidates/shuffle');
 var getPairs = require('./moduleCandidates/getPairs');
 
-module.exports = function(config, game) {
+module.exports = function(otHandle, game) {
   var self = (new (function rockPaperScissors(){}));
 
   self.game = game;
 
   self.clients = [];
 
-  console.log('Initializing opentok with: ' + JSON.stringify(config));
-  self.otHandle = opentok(config.apiKey, config.apiSecret);
-
-  self.createSession = function() {
-    return new Promise(function(resolve, reject) {
-      self.otHandle.createSession(function(err, session) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(session);
-        }
-      });
-    });
-  };
+  self.otHandle = otHandle;
 
   self.getUserList = function() {
     return self.clients.map(function(client) { return client.username; });
@@ -50,7 +36,7 @@ module.exports = function(config, game) {
         inGame: false,
         disconnected: false,
         score: 0,
-        session: self.createSession()
+        session: self.otHandle.createSession()
       };
 
       sock.onclose(function() {
@@ -68,7 +54,7 @@ module.exports = function(config, game) {
     client.session.then(function(session) {
       client.socket.route('initOwnSession').send({
         id: session.sessionId,
-        apiKey: config.apiKey,
+        apiKey: self.otHandle.apiKey,
         token: session.generateToken()
       });
     });
@@ -155,7 +141,7 @@ module.exports = function(config, game) {
 
         return opponent.session.then(function(opponentSession) {
           var gameInfo = {
-            apiKey: config.apiKey,
+            apiKey: self.otHandle.apiKey,
             sessionId: opponentSession.sessionId,
             token: opponentSession.generateToken(),
             opponentName: opponent.username

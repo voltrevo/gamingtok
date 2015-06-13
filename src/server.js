@@ -8,6 +8,7 @@ var sockception = require('sockception');
 var roundRobin = require('./roundRobin');
 var rockPaperScissors = require('./rockPaperScissors');
 var consoleLogger = require('./moduleCandidates/consoleLogger');
+var otHandle = require('./otHandle')(config.opentokAuth);
 
 var rooms = {};
 
@@ -25,7 +26,7 @@ sockception.listen(
     var room = rooms[joinRoom.value];
 
     if (!room) {
-      room = roundRobin(config.opentokAuth, rockPaperScissors(1));
+      room = roundRobin(otHandle, rockPaperScissors(1));
       rooms[joinRoom.value] = room;
       console.log('Room created:', JSON.stringify(joinRoom.value));
     }
