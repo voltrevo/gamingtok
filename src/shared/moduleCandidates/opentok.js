@@ -14,6 +14,6 @@ module.exports = new Promise(function(resolve) {
       //delete window.OTPlugin;
 
       resolve(opentok);
-    })
+    });
   });
 });
